@@ -31,7 +31,10 @@ Status: planned. Each item is updated when its code lands.
 
 12. **Submitting runs in a queued job** (`SubmitGeneration`). The API client makes one attempt per call; the job owns all retrying, so attempts are never multiplied by two retry layers. On a busy answer (rate limit, concurrency limit, overload, 5xx, network error) it waits `max(Retry-After, backoff)` where backoff is 5, 10, 20, 40, then 60 seconds, for up to 8 attempts (about 4 minutes: enough for the 3-at-once limit to clear behind slow generations). Every attempt sends the same idempotency key. A permanent answer (blocked prompt, invalid input, daily quota, bad API key) fails at once. Either way the generation is marked failed with a plain-language message and costs nothing.
 12a. **Our own submit endpoint is throttled** to 10 per user per minute, because all users share Pixelforge's 60 requests per minute.
-13. **Polling fallback.** A scheduled command checks generations that are not final after a while, because webhook delivery is not guaranteed.
+13. **Polling fallback** (`generations:reconcile`, every minute). Webhook delivery is not guaranteed, so:
+    - queued/processing generations with no news for 60 seconds are fetched with `GET /generations/{id}` and go through the same `ApplyGenerationSnapshot`. At most 10 per run, oldest first, because each poll uses one of the 60 requests per minute all users share. A busy answer stops the run until next minute.
+    - pending generations untouched for 10 minutes (longer than the submit job's whole ~4 minute retry schedule) get their submit job again, in case a queue worker died. The idempotency key makes this safe.
+    The scheduler must run in production (`schedule:work` or cron).
 14. **Live status by Inertia polling.** The history page reloads its data every couple of seconds while something is active. No websockets needed for this size of app.
 
 ## Reporting and balances (stretch)
