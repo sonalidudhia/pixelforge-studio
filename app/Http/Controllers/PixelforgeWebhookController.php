@@ -115,7 +115,12 @@ class PixelforgeWebhookController extends Controller
         // Pixelforge id yet: find the row by the id we sent in the metadata.
         $ourId = $snapshot->metadata['generation_id'] ?? null;
 
-        return $ourId === null ? null : Generation::query()
+        // Not one of our ids (Postgres would refuse to compare it with a bigint).
+        if ($ourId === null || ! ctype_digit($ourId)) {
+            return null;
+        }
+
+        return Generation::query()
             ->whereKey($ourId)
             ->whereNull('pixelforge_id')
             ->first();

@@ -163,7 +163,9 @@ return [
     'features' => [
         Features::registration(),
         Features::resetPasswords(),
-        Features::emailVerification(),
+        // Off: the deployed demo has no mail sender, so a verification email
+        // would never arrive and new users (the reviewers) would be locked out.
+        // Features::emailVerification(),
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,

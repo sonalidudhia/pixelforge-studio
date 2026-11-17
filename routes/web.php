@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     // The studio is the home page after signing in.
     Route::redirect('dashboard', 'generations')->name('dashboard');
 

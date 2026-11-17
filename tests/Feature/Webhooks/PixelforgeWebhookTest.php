@@ -207,6 +207,13 @@ describe('other events', function () {
         expect(WebhookEvent::sole()->processed_at)->not->toBeNull();
     });
 
+    it('ignores metadata that is not one of our ids', function () {
+        sendWebhook(webhookEvent('generation.succeeded', array_replace(succeededGenerationPayload(), [
+            'id' => 'gen_unknown',
+            'metadata' => ['generation_id' => 'not-a-number'],
+        ])))->assertNoContent();
+    });
+
     it('refuses a body that is not an event', function () {
         sendWebhook(['hello' => 'world'])->assertStatus(422);
         sendWebhook(['id' => 'evt_x', 'type' => 'generation.succeeded', 'data' => []])->assertStatus(422);
