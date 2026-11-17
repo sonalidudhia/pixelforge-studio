@@ -2,9 +2,15 @@
 
 Take-home assessment for PromptEdit: a Laravel + Vue + Inertia app where signed-in users generate images through the [Pixelforge API](https://pixelforge.promptedit.dev/docs) and are charged the exact provider cost plus a 25% markup.
 
+## Live app
+
+**https://pixelforge-studio-production-bbwi5k.laravel.cloud** — register an account (no email verification needed) and open the Studio.
+
+Deployed on Laravel Cloud: MySQL 8.4, a queue worker (`queue:work database`) and the scheduler (runs `generations:reconcile` every minute). It uses its own Pixelforge API key, so `GET /v1/usage` for that key matches the app's records exactly.
+
 ## Status
 
-Phases 1 to 7 are done: signed-in users can generate images, see the price before submitting, and follow each generation live with its exact cost. Deploy and the stretch goals come next.
+Required part done: generate with a live price estimate, exact cost per generation (failed ones free), live history, verified and deduplicated webhooks, polling fallback, deployed. Stretch goals come next.
 
 ## Docs
 
@@ -43,6 +49,12 @@ Webhooks need a public URL. For local work, run a tunnel (Expose or ngrok) and s
 ```bash
 php artisan test
 ```
+
+The suite also passes against MySQL and Postgres (`DB_CONNECTION=mysql|pgsql …`).
+
+## Running locally
+
+`composer run dev` starts the web server, a queue worker and Vite. Without a queue worker nothing is sent to Pixelforge. Run `php artisan schedule:work` too if you want the polling fallback.
 
 ## Build phases
 
