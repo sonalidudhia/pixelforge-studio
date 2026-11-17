@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Pixelforge\CostCalculator;
+use App\Pixelforge\PixelforgeClient;
 use App\Pixelforge\PricingRepository;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -28,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
             http: $app->make(HttpFactory::class),
             cache: $app->make(CacheRepository::class),
             baseUrl: (string) config('services.pixelforge.base_url'),
+        ));
+
+        $this->app->singleton(PixelforgeClient::class, fn (Application $app): PixelforgeClient => new PixelforgeClient(
+            http: $app->make(HttpFactory::class),
+            baseUrl: (string) config('services.pixelforge.base_url'),
+            apiKey: (string) config('services.pixelforge.key'),
         ));
     }
 

@@ -53,3 +53,55 @@ function pricingFixture(): array
 {
     return json_decode(file_get_contents(__DIR__.'/Fixtures/pricing.json'), true, flags: JSON_THROW_ON_ERROR);
 }
+
+/**
+ * A generation object shaped like the examples in the Pixelforge docs.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function generationPayload(array $overrides = []): array
+{
+    return array_replace([
+        'id' => 'gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K',
+        'object' => 'generation',
+        'status' => 'queued',
+        'prompt' => 'A lighthouse on a cliff at dawn, oil painting',
+        'size' => '1536x1024',
+        'quality' => 'high',
+        'reference_images' => ['https://example.com/style.png'],
+        'metadata' => ['generation_id' => '1'],
+        'image_url' => null,
+        'image_url_expires_at' => null,
+        'usage' => null,
+        'rates' => pricingFixture()['rates'],
+        'error' => null,
+        'created_at' => '2026-11-04T14:03:11Z',
+        'started_at' => null,
+        'completed_at' => null,
+    ], $overrides);
+}
+
+/**
+ * The same generation after it succeeded, with the token usage from the docs.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function succeededGenerationPayload(array $overrides = []): array
+{
+    return generationPayload(array_replace([
+        'status' => 'succeeded',
+        'image_url' => 'https://pixelforge.promptedit.dev/images/gen_01JC2Z8Q4N6V0M3H7X5T9R2B1K.png?expires=1762351409&signature=abc',
+        'image_url_expires_at' => '2026-11-05T14:03:29Z',
+        'usage' => [
+            'input_text_tokens' => 12,
+            'input_image_tokens' => 765,
+            'output_tokens' => 6450,
+            'reasoning_tokens' => 3184,
+            'total_tokens' => 10411,
+        ],
+        'started_at' => '2026-11-04T14:03:13Z',
+        'completed_at' => '2026-11-04T14:03:29Z',
+    ], $overrides));
+}
