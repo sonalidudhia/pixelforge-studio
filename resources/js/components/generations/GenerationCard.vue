@@ -144,7 +144,9 @@ const tokenSummary = computed(() => {
                 </dd>
 
                 <dt class="text-muted-foreground">Cost</dt>
-                <dd class="text-right font-medium whitespace-nowrap tabular-nums">
+                <dd
+                    class="text-right font-medium whitespace-nowrap tabular-nums"
+                >
                     <template v-if="generation.status === 'failed'">
                         Free, not charged
                     </template>
