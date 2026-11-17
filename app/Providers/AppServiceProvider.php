@@ -2,7 +2,12 @@
 
 namespace App\Providers;
 
+use App\Pixelforge\CostCalculator;
+use App\Pixelforge\PricingRepository;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -15,7 +20,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CostCalculator::class, fn (): CostCalculator => new CostCalculator(
+            markupPercent: (int) config('services.pixelforge.markup_percent'),
+        ));
+
+        $this->app->singleton(PricingRepository::class, fn (Application $app): PricingRepository => new PricingRepository(
+            http: $app->make(HttpFactory::class),
+            cache: $app->make(CacheRepository::class),
+            baseUrl: (string) config('services.pixelforge.base_url'),
+        ));
     }
 
     /**

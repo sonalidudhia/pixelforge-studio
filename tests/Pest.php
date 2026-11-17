@@ -44,7 +44,12 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * Pixelforge's real GET /v1/pricing response, saved as a fixture.
+ *
+ * @return array<string, mixed>
+ */
+function pricingFixture(): array
 {
-    // ..
+    return json_decode(file_get_contents(__DIR__.'/Fixtures/pricing.json'), true, flags: JSON_THROW_ON_ERROR);
 }

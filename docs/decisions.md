@@ -5,7 +5,7 @@ Status: planned. Each item is updated when its code lands.
 
 ## Money
 
-1. **Integer nanodollars.** 1 USD = 1,000,000,000 nanodollars. A rate of `$5.00 per 1M tokens` is exactly 5,000 nanodollars per token, so `tokens × rate` is always a whole number. No floats anywhere. Stored as `bigint`. This is the same precision as Pixelforge's nine-decimal `cost_usd`.
+1. **Integer nanodollars.** 1 USD = 1,000,000,000 nanodollars. A rate of `$5.00 per 1M tokens` is exactly 5,000 nanodollars per token, so `tokens × rate` is always a whole number. No floats anywhere. Stored as `bigint`. This is the same precision as Pixelforge's nine-decimal `cost_usd`. The calculator adds up `tokens × rate` for all four token types first and divides by 1,000,000 once; if a future rate ever left a fraction of a nanodollar, it rounds up. (`app/Support/Money.php`, `app/Pixelforge/CostCalculator.php`)
 2. **Two amounts per generation.** `provider_cost` (what Pixelforge charges us) and `user_cost` (what we charge the user). They are stored separately so the admin report can show spend, cost and profit.
 3. **25% markup, rounded up.** `user_cost = ceil(provider_cost × 1.25)` in nanodollars. Rounding up means we never charge less than cost plus markup. With today's rates the result is always a whole number anyway.
 4. **Actual cost uses the generation's own `rates`.** Pixelforge fixes the rates when the generation is created. We store that snapshot and calculate from it, not from today's pricing.
