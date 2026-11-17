@@ -162,3 +162,32 @@ it('sends the user back to the studio with a confirmation after submitting', fun
         ])
         ->assertRedirect(route('generations.index'));
 });
+
+it('does not let live estimates use up the submit limit', function () {
+    Queue::fake();
+
+    // Typing a prompt fires many estimate requests.
+    foreach (range(1, 30) as $i) {
+        $this->actingAs($this->user)
+            ->getJson(route('generations.estimate', [
+                'characters' => $i, 'size' => '1024x1024', 'quality' => 'low', 'reference_images' => 0,
+            ]))
+            ->assertOk();
+    }
+
+    $this->actingAs($this->user)
+        ->post(route('generations.store'), ['prompt' => 'A cat', 'size' => '1024x1024', 'quality' => 'low'])
+        ->assertRedirect(route('generations.index'));
+});
+
+it('still limits submits to 10 a minute per user', function () {
+    Queue::fake();
+    $submit = fn () => $this->actingAs($this->user)
+        ->post(route('generations.store'), ['prompt' => 'A cat', 'size' => '1024x1024', 'quality' => 'low']);
+
+    foreach (range(1, 10) as $i) {
+        $submit()->assertRedirect();
+    }
+
+    $submit()->assertTooManyRequests();
+});
