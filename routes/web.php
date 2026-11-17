@@ -6,7 +6,14 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'Welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    // The studio is the home page after signing in.
+    Route::redirect('dashboard', 'generations')->name('dashboard');
+
+    Route::get('generations', [GenerationController::class, 'index'])->name('generations.index');
+
+    Route::get('generations/estimate', [GenerationController::class, 'estimate'])
+        ->middleware('throttle:120,1')
+        ->name('generations.estimate');
 
     // Each submit can cost money and uses the shared Pixelforge limits.
     Route::post('generations', [GenerationController::class, 'store'])

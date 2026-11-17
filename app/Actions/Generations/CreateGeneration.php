@@ -28,7 +28,7 @@ final readonly class CreateGeneration
      */
     public function handle(User $user, string $prompt, string $size, string $quality, array $referenceImages): Generation
     {
-        $estimate = $this->calculator->estimate($prompt, $size, $quality, count($referenceImages), $this->pricing->current());
+        $estimate = $this->calculator->estimate(mb_strlen($prompt), $size, $quality, count($referenceImages), $this->pricing->current());
 
         $generation = $user->generations()->create([
             'idempotency_key' => (string) Str::uuid(),

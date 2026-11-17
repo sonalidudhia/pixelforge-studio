@@ -4,7 +4,7 @@ Take-home assessment for PromptEdit: a Laravel + Vue + Inertia app where signed-
 
 ## Status
 
-Project scaffold and API study. Features are built in the phases listed below.
+Phases 1 to 7 are done: signed-in users can generate images, see the price before submitting, and follow each generation live with its exact cost. Deploy and the stretch goals come next.
 
 ## Docs
 
@@ -25,6 +25,8 @@ php artisan key:generate
 php artisan migrate
 composer run dev
 ```
+
+Sign in at `/login` (run `php artisan db:seed` for a local test user) and open the Studio.
 
 Then set these in `.env` (create a key in the Pixelforge dashboard):
 

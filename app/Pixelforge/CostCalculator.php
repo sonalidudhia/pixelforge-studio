@@ -45,10 +45,13 @@ final readonly class CostCalculator
 
     /**
      * The price range to show the user before they submit.
+     *
+     * Only the prompt's length matters, counted in characters (mb_strlen),
+     * not bytes.
      */
-    public function estimate(string $prompt, string $size, string $quality, int $referenceImages, Pricing $pricing): CostEstimate
+    public function estimate(int $promptCharacters, string $size, string $quality, int $referenceImages, Pricing $pricing): CostEstimate
     {
-        $estimatedTextTokens = self::divideRoundingUp(mb_strlen($prompt), $pricing->charactersPerTextToken);
+        $estimatedTextTokens = self::divideRoundingUp($promptCharacters, $pricing->charactersPerTextToken);
         $variance = $pricing->textTokenVarianceBasisPoints;
 
         $imageTokens = $referenceImages * $pricing->tokensPerReferenceImage;

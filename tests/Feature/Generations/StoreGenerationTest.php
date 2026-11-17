@@ -102,3 +102,16 @@ it('counts the prompt limit in characters, not bytes', function () {
         ->post(route('generations.store'), validGenerationInput(['prompt' => str_repeat('🎨', 4000)]))
         ->assertSessionHasNoErrors();
 });
+
+it('estimates from characters, not bytes', function () {
+    Queue::fake();
+
+    // 8 emoji are 8 characters (2 tokens) but 32 bytes (8 tokens).
+    $this->actingAs($this->user)->post(route('generations.store'), validGenerationInput(['prompt' => str_repeat('🎨', 8)]));
+    $this->actingAs($this->user)->post(route('generations.store'), validGenerationInput(['prompt' => str_repeat('a', 8)]));
+
+    [$emoji, $ascii] = $this->user->generations()->oldest('id')->get();
+
+    expect($emoji->estimated_max_cost)->toEqual($ascii->estimated_max_cost)
+        ->and($emoji->estimated_min_cost)->toEqual($ascii->estimated_min_cost);
+});

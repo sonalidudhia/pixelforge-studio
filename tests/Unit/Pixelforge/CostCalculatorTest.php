@@ -77,7 +77,7 @@ describe('user price', function () {
 describe('estimate', function () {
     it('gives the docs worked example as the maximum, plus markup', function () {
         $estimate = $this->calculator->estimate(
-            prompt: str_repeat('a', 400),
+            promptCharacters: 400,
             size: '1536x1024',
             quality: 'high',
             referenceImages: 2,
@@ -90,17 +90,9 @@ describe('estimate', function () {
             ->and($estimate->min->toDecimal())->toBe('0.357781250');
     });
 
-    it('counts characters, not bytes', function () {
-        // 8 emoji are 8 characters (2 tokens) but 32 bytes (8 tokens).
-        $emoji = $this->calculator->estimate(str_repeat('🎨', 8), '1024x1024', 'low', 0, $this->pricing);
-        $ascii = $this->calculator->estimate(str_repeat('a', 8), '1024x1024', 'low', 0, $this->pricing);
-
-        expect($emoji)->toEqual($ascii);
-    });
-
     it('rounds a partial text token up', function () {
         // 5 characters = 2 tokens; at most 3 after +15%, at least 1 after -15%.
-        $estimate = $this->calculator->estimate('abcde', '1024x1024', 'low', 0, $this->pricing);
+        $estimate = $this->calculator->estimate(5, '1024x1024', 'low', 0, $this->pricing);
 
         $output = 280 * 40_000;
 
@@ -109,8 +101,8 @@ describe('estimate', function () {
     });
 
     it('charges 765 image tokens per reference image', function () {
-        $without = $this->calculator->estimate('a cat', '1024x1024', 'medium', 0, $this->pricing);
-        $withOne = $this->calculator->estimate('a cat', '1024x1024', 'medium', 1, $this->pricing);
+        $without = $this->calculator->estimate(5, '1024x1024', 'medium', 0, $this->pricing);
+        $withOne = $this->calculator->estimate(5, '1024x1024', 'medium', 1, $this->pricing);
 
         // 765 tokens x $10.00 per 1M = $0.00765, plus 25%.
         expect($withOne->max->minus($without->max)->toDecimal())->toBe('0.009562500')
@@ -118,10 +110,10 @@ describe('estimate', function () {
     });
 
     it('always contains the actual price', function (string $quality, string $size) {
-        $prompt = str_repeat('word ', 37);
-        $estimate = $this->calculator->estimate($prompt, $size, $quality, 1, $this->pricing);
+        $promptCharacters = 185;
+        $estimate = $this->calculator->estimate($promptCharacters, $size, $quality, 1, $this->pricing);
 
-        $estimatedTextTokens = (int) ceil(mb_strlen($prompt) / 4);
+        $estimatedTextTokens = (int) ceil($promptCharacters / 4);
         $reasoning = $this->pricing->reasoningRangeFor($quality);
 
         // Every text token count Pixelforge may report: within 15% either way.
@@ -143,7 +135,7 @@ describe('estimate', function () {
     })->with(['low', 'medium', 'high'])->with(['1024x1024', '1536x1024', '1024x1536']);
 
     it('refuses a quality or size Pixelforge does not sell', function (string $size, string $quality) {
-        $this->calculator->estimate('a cat', $size, $quality, 0, $this->pricing);
+        $this->calculator->estimate(5, $size, $quality, 0, $this->pricing);
     })->with([
         ['512x512', 'low'],
         ['1024x1024', 'ultra'],

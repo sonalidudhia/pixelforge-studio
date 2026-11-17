@@ -14,23 +14,23 @@ These notes are the short version, with what each rule means for our app.
 
 ## 2. Endpoints
 
-| Method | Path | Auth | What it does |
-|---|---|---|---|
-| POST | `/generations` | yes | Start a generation. Returns `202` with status `queued`. |
-| GET | `/generations/{id}` | yes | Read one generation (polling). |
-| GET | `/generations` | yes | List, newest first. `limit` (1–100), `status`, `cursor`. |
-| GET | `/pricing` | no | Current rates and token rules. |
-| GET | `/usage` | yes | What Pixelforge billed **this API key**, per UTC day. |
+| Method | Path                | Auth | What it does                                             |
+| ------ | ------------------- | ---- | -------------------------------------------------------- |
+| POST   | `/generations`      | yes  | Start a generation. Returns `202` with status `queued`.  |
+| GET    | `/generations/{id}` | yes  | Read one generation (polling).                           |
+| GET    | `/generations`      | yes  | List, newest first. `limit` (1–100), `status`, `cursor`. |
+| GET    | `/pricing`          | no   | Current rates and token rules.                           |
+| GET    | `/usage`            | yes  | What Pixelforge billed **this API key**, per UTC day.    |
 
 ### Create a generation — parameters
 
-| Name | Rules |
-|---|---|
-| `prompt` | required, max 4,000 characters |
-| `size` | `1024x1024` (default), `1536x1024`, `1024x1536` |
-| `quality` | `low`, `medium` (default), `high` |
-| `reference_images` | optional, max 4 http(s) URLs, each billed as 765 input image tokens |
-| `metadata` | optional, string → string, max 20 keys, values max 500 chars. Echoed back on the generation and in every webhook. |
+| Name               | Rules                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `prompt`           | required, max 4,000 characters                                                                                    |
+| `size`             | `1024x1024` (default), `1536x1024`, `1024x1536`                                                                   |
+| `quality`          | `low`, `medium` (default), `high`                                                                                 |
+| `reference_images` | optional, max 4 http(s) URLs, each billed as 765 input image tokens                                               |
+| `metadata`         | optional, string → string, max 20 keys, values max 500 chars. Echoed back on the generation and in every webhook. |
 
 Unknown parameters are **rejected** (`422`), not ignored.
 
@@ -48,30 +48,30 @@ Unknown parameters are **rejected** (`422`), not ignored.
 
 Rates are US dollars per 1,000,000 tokens.
 
-| Token type | Rate | Do we know the count before submit? |
-|---|---|---|
-| Input text | $5.00 | **No.** Estimate `ceil(characters / 4)`. Real count is within ±15%. |
-| Input image | $10.00 | Yes. Exactly 765 per reference image. |
-| Output | $40.00 | Yes. Fixed by quality and size (table below). |
-| Reasoning | $12.50 | **No.** A range by quality (table below). |
+| Token type  | Rate   | Do we know the count before submit?                                 |
+| ----------- | ------ | ------------------------------------------------------------------- |
+| Input text  | $5.00  | **No.** Estimate `ceil(characters / 4)`. Real count is within ±15%. |
+| Input image | $10.00 | Yes. Exactly 765 per reference image.                               |
+| Output      | $40.00 | Yes. Fixed by quality and size (table below).                       |
+| Reasoning   | $12.50 | **No.** A range by quality (table below).                           |
 
 Characters means Unicode characters, not bytes → `mb_strlen`, not `strlen`.
 
 Output tokens (exact):
 
 | Quality | 1024x1024 | 1536x1024 | 1024x1536 |
-|---|---|---|---|
-| low | 280 | 420 | 420 |
-| medium | 1,100 | 1,650 | 1,650 |
-| high | 4,300 | 6,450 | 6,450 |
+| ------- | --------- | --------- | --------- |
+| low     | 280       | 420       | 420       |
+| medium  | 1,100     | 1,650     | 1,650     |
+| high    | 4,300     | 6,450     | 6,450     |
 
 Reasoning tokens (range):
 
-| Quality | Min | Max |
-|---|---|---|
-| low | 0 | 500 |
-| medium | 200 | 2,000 |
-| high | 1,000 | 8,000 |
+| Quality | Min   | Max   |
+| ------- | ----- | ----- |
+| low     | 0     | 500   |
+| medium  | 200   | 2,000 |
+| high    | 1,000 | 8,000 |
 
 Rules that matter:
 
@@ -83,13 +83,13 @@ Rules that matter:
 
 Worked example from the docs (the most a generation can cost) — high, 1536x1024, 400-character prompt, 2 reference images:
 
-| Tokens | Count | Rate | Cost |
-|---|---|---|---|
-| Input text (100 + 15%) | 115 | $5.00 | 0.000575000 |
-| Input image (2 × 765) | 1,530 | $10.00 | 0.015300000 |
-| Output | 6,450 | $40.00 | 0.258000000 |
-| Reasoning (max) | 8,000 | $12.50 | 0.100000000 |
-| **Total** | | | **0.373875000** |
+| Tokens                 | Count | Rate   | Cost            |
+| ---------------------- | ----- | ------ | --------------- |
+| Input text (100 + 15%) | 115   | $5.00  | 0.000575000     |
+| Input image (2 × 765)  | 1,530 | $10.00 | 0.015300000     |
+| Output                 | 6,450 | $40.00 | 0.258000000     |
+| Reasoning (max)        | 8,000 | $12.50 | 0.100000000     |
+| **Total**              |       |        | **0.373875000** |
 
 This becomes a unit test.
 
@@ -107,25 +107,25 @@ This becomes a unit test.
 
 Same shape every time: `{ "error": { "type", "code", "message", "param"?, "errors"? } }`. Branch on `code`.
 
-| Code | Status | What we do |
-|---|---|---|
-| `invalid_api_key` | 401 | Config problem. Fail the generation, alert in logs. Do not retry. |
-| `validation_failed` | 422 | Our bug or bad input. Fail, show message. Do not retry. |
-| `content_policy_violation` | 400 | Prompt rejected. Fail, tell the user to change the prompt. Do not retry. Free. |
-| `not_found` | 404 | Wrong id or other account. |
-| `idempotency_key_reused` | 409 | Same key, different body. Our bug. Do not retry. |
-| `rate_limit_exceeded` | 429 | Wait `Retry-After` seconds, retry. |
-| `concurrency_limit_exceeded` | 429 | 3 already running. Wait (`Retry-After: 5`), retry. |
-| `daily_limit_exceeded` | 429 | 500/day used up. Fail with a clear message. Retrying today will not help. |
-| `overloaded` | 503 | Nothing was created. Wait (`Retry-After: 2`), retry with the same idempotency key. |
+| Code                         | Status | What we do                                                                         |
+| ---------------------------- | ------ | ---------------------------------------------------------------------------------- |
+| `invalid_api_key`            | 401    | Config problem. Fail the generation, alert in logs. Do not retry.                  |
+| `validation_failed`          | 422    | Our bug or bad input. Fail, show message. Do not retry.                            |
+| `content_policy_violation`   | 400    | Prompt rejected. Fail, tell the user to change the prompt. Do not retry. Free.     |
+| `not_found`                  | 404    | Wrong id or other account.                                                         |
+| `idempotency_key_reused`     | 409    | Same key, different body. Our bug. Do not retry.                                   |
+| `rate_limit_exceeded`        | 429    | Wait `Retry-After` seconds, retry.                                                 |
+| `concurrency_limit_exceeded` | 429    | 3 already running. Wait (`Retry-After: 5`), retry.                                 |
+| `daily_limit_exceeded`       | 429    | 500/day used up. Fail with a clear message. Retrying today will not help.          |
+| `overloaded`                 | 503    | Nothing was created. Wait (`Retry-After: 2`), retry with the same idempotency key. |
 
 ## 6. Limits (per account, across all keys)
 
-| Limit | Value |
-|---|---|
-| Requests | 60 per minute |
+| Limit                  | Value                          |
+| ---------------------- | ------------------------------ |
+| Requests               | 60 per minute                  |
 | Concurrent generations | 3 queued or processing at once |
-| Generations per day | 500 per UTC day |
+| Generations per day    | 500 per UTC day                |
 
 - Every response has `X-RateLimit-Limit` and `X-RateLimit-Remaining`.
 - Respect `Retry-After`. Back off more each time. Give up after a few attempts.
@@ -145,12 +145,12 @@ For us: one UUID per local generation row, created before the first call. Every 
 
 Each API key has its own webhook URL and its own signing secret (`whsec_…`).
 
-| Event | When |
-|---|---|
-| `generation.processing` | left the queue |
-| `generation.succeeded` | finished, has `usage` and `image_url` |
-| `generation.failed` | failed, has `error` |
-| `ping` | "Send test event" in the dashboard |
+| Event                   | When                                  |
+| ----------------------- | ------------------------------------- |
+| `generation.processing` | left the queue                        |
+| `generation.succeeded`  | finished, has `usage` and `image_url` |
+| `generation.failed`     | failed, has `error`                   |
+| `ping`                  | "Send test event" in the dashboard    |
 
 Body: `{ id: "evt_…", type, created_at, data: { object: <full generation object> } }`
 
@@ -183,13 +183,13 @@ Headers: `Pixelforge-Event-Id`, `Pixelforge-Event-Type`, `Pixelforge-Delivery-At
 
 Put these anywhere in the prompt (case-insensitive; they still count as prompt characters):
 
-| Keyword | Behaviour |
-|---|---|
-| `[blocked]` | `400 content_policy_violation` at submit |
-| `[overloaded]` | `503 overloaded` at submit |
-| `[fail]` | accepted, then fails while processing |
-| `[succeed]` | accepted, never fails at random |
-| `[slow]` | takes 60–90 seconds |
-| `[duplicate]` | every webhook event is delivered twice |
+| Keyword        | Behaviour                                |
+| -------------- | ---------------------------------------- |
+| `[blocked]`    | `400 content_policy_violation` at submit |
+| `[overloaded]` | `503 overloaded` at submit               |
+| `[fail]`       | accepted, then fails while processing    |
+| `[succeed]`    | accepted, never fails at random          |
+| `[slow]`       | takes 60–90 seconds                      |
+| `[duplicate]`  | every webhook event is delivered twice   |
 
 Without keywords Pixelforge still fails at random sometimes: random failures, random `503`, random duplicate webhooks.
