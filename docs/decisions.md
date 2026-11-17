@@ -19,13 +19,15 @@ Status: planned. Each item is updated when its code lands.
 ## State and webhooks
 
 8. **Our row exists before we call Pixelforge.** We send our row id in `metadata` and a UUID as `Idempotency-Key`. A webhook that arrives before the POST returns still finds its row. A retry never creates a second generation.
-9. **One function applies provider state.** Webhooks, polling and the POST response all pass the generation object to the same action. It runs in a transaction with a row lock and holds two rules: a final status never changes, and the cost is settled only once.
+9. **One function applies provider state.** Webhooks, polling and the POST response all pass the generation object to `ApplyGenerationSnapshot`. It runs in a transaction with a row lock and holds two rules: the status only moves forward (`GenerationStatus::canTransitionTo`), and the cost is set once, in the same save that makes the generation final. Skipping a step (queued → succeeded) is allowed, because a processing event can be lost.
+9a. **A `pending` status of our own** means "saved, not yet accepted by Pixelforge". Until Pixelforge has accepted a generation, our status is only a guess, so anything Pixelforge says wins. This matters when we give up submitting after network errors but one attempt reached Pixelforge after all: its webhook turns our "failed" into the real result, so our costs still match `GET /v1/usage`.
 10. **Webhook dedupe by event id.** A `webhook_events` table has a unique `event_id`. We insert first; if the row already exists we answer `200` and do nothing.
 11. **Signature check on the raw body**, constant-time compare, 5 minute tolerance.
 
 ## Robustness
 
-12. **Submitting runs in a queued job.** It respects `Retry-After`, backs off more each time and stops after a fixed number of attempts. When it gives up, the generation is marked failed with a message the user can understand.
+12. **Submitting runs in a queued job** (`SubmitGeneration`). The API client makes one attempt per call; the job owns all retrying, so attempts are never multiplied by two retry layers. On a busy answer (rate limit, concurrency limit, overload, 5xx, network error) it waits `max(Retry-After, backoff)` where backoff is 5, 10, 20, 40, then 60 seconds, for up to 8 attempts (about 4 minutes: enough for the 3-at-once limit to clear behind slow generations). Every attempt sends the same idempotency key. A permanent answer (blocked prompt, invalid input, daily quota, bad API key) fails at once. Either way the generation is marked failed with a plain-language message and costs nothing.
+12a. **Our own submit endpoint is throttled** to 10 per user per minute, because all users share Pixelforge's 60 requests per minute.
 13. **Polling fallback.** A scheduled command checks generations that are not final after a while, because webhook delivery is not guaranteed.
 14. **Live status by Inertia polling.** The history page reloads its data every couple of seconds while something is active. No websockets needed for this size of app.
 

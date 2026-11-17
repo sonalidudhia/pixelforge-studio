@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -104,4 +105,12 @@ function succeededGenerationPayload(array $overrides = []): array
         'started_at' => '2026-11-04T14:03:13Z',
         'completed_at' => '2026-11-04T14:03:29Z',
     ], $overrides));
+}
+
+/**
+ * Answer GET /v1/pricing with the saved fixture.
+ */
+function fakePixelforgePricing(): void
+{
+    Http::fake(['*/v1/pricing' => Http::response(pricingFixture())]);
 }
